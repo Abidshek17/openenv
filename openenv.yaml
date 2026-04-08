@@ -1,0 +1,87 @@
+# openenv.yaml
+# Required metadata file for OpenEnv spec compliance.
+
+name: EmailTriageEnv
+version: "1.0.0"
+description: >
+  A real-world email triage and prioritization environment.
+  An AI agent works through a realistic office inbox and must:
+  (1) classify each email as urgent / normal / spam,
+  (2) assign a priority rank from 1 (most urgent) to 10 (least urgent),
+  (3) draft a professional reply.
+  Three difficulty levels with deterministic graders.
+
+tags:
+  - openenv
+  - email
+  - triage
+  - nlp
+  - real-world
+  - classification
+  - prioritization
+
+tasks:
+  - name: easy
+    description: "Label each email as urgent, normal, or spam."
+    difficulty: easy
+    max_steps: 12
+    score_range: [0.0, 1.0]
+
+  - name: medium
+    description: "Label each email AND assign a priority rank (1-10)."
+    difficulty: medium
+    max_steps: 12
+    score_range: [0.0, 1.0]
+
+  - name: hard
+    description: "Label, prioritize, and write a draft reply to each email."
+    difficulty: hard
+    max_steps: 12
+    score_range: [0.0, 1.0]
+
+observation_space:
+  type: EmailObservation
+  fields:
+    step: "Current step number (int)"
+    total_steps: "Max steps in episode (int)"
+    task_name: "Active task name (str)"
+    task_description: "What the agent must do (str)"
+    current_email: "Email to act on — id, subject, sender, body (dict)"
+    emails_remaining: "How many emails remain (int)"
+    cumulative_reward: "Total reward so far (float)"
+    last_action_result: "Feedback on previous action (str)"
+    done: "True when episode is over (bool)"
+
+action_space:
+  type: EmailAction
+  fields:
+    email_id: "ID of the email being acted on (str, required)"
+    label: "Classification: urgent | normal | spam (str, required)"
+    priority: "Priority rank 1-10, 1=most urgent (int, optional — required for medium/hard)"
+    reply: "Draft reply text (str, optional — required for hard)"
+
+reward:
+  type: float
+  range: [0.0, 1.0]
+  description: >
+    Per-step reward based on task:
+    easy   — 1.0 * label_correct
+    medium — 0.6 * label_correct + 0.4 * priority_score (partial credit)
+    hard   — 0.4 * label + 0.3 * priority + 0.3 * reply_quality
+
+endpoints:
+  reset: POST /reset
+  step:  POST /step
+  state: GET  /state
+  tasks: GET  /tasks
+
+infrastructure:
+  framework: FastAPI
+  server: uvicorn
+  port: 7860
+  docker: true
+
+authors:
+  - name: EmailTriageEnv Team
+
+license: MIT
